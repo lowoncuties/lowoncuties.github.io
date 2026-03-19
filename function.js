@@ -1,42 +1,53 @@
 function initRevealObserver() {
-    const revealItems = document.querySelectorAll(".reveal");
+    var revealItems = document.querySelectorAll(".reveal");
+    var i;
 
     if (!("IntersectionObserver" in window)) {
-        revealItems.forEach((item) => item.classList.add("is-visible"));
+        for (i = 0; i < revealItems.length; i += 1) {
+            revealItems[i].classList.add("is-visible");
+        }
         return;
     }
 
-    const observer = new IntersectionObserver(
-        (entries) => {
-            entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add("is-visible");
-                    observer.unobserve(entry.target);
-                }
-            });
-        },
-        {
-            threshold: 0.12,
-            rootMargin: "0px 0px -32px 0px"
-        }
-    );
+    var observer = new IntersectionObserver(function (entries) {
+        var entryIndex;
 
-    revealItems.forEach((item) => observer.observe(item));
+        for (entryIndex = 0; entryIndex < entries.length; entryIndex += 1) {
+            if (entries[entryIndex].isIntersecting) {
+                entries[entryIndex].target.classList.add("is-visible");
+                observer.unobserve(entries[entryIndex].target);
+            }
+        }
+    }, {
+        threshold: 0.12,
+        rootMargin: "0px 0px -32px 0px"
+    });
+
+    for (i = 0; i < revealItems.length; i += 1) {
+        observer.observe(revealItems[i]);
+    }
 }
 
 function initSpaceCanvas() {
-    const canvas = document.getElementById("space-canvas");
+    var canvas = document.getElementById("space-canvas");
+    var context;
+    var prefersReducedMotion;
+    var width = 0;
+    var height = 0;
+    var stars = [];
+    var animationId = null;
 
     if (!canvas) {
         return;
     }
 
-    const context = canvas.getContext("2d");
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let width = 0;
-    let height = 0;
-    let stars = [];
-    let animationId = null;
+    context = canvas.getContext("2d");
+
+    if (!context) {
+        return;
+    }
+
+    prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     function createStar() {
         return {
@@ -50,28 +61,41 @@ function initSpaceCanvas() {
     }
 
     function rebuildStars() {
-        const count = Math.min(220, Math.max(90, Math.floor((width * height) / 14000)));
-        stars = Array.from({ length: count }, createStar);
+        var count = Math.min(220, Math.max(90, Math.floor((width * height) / 14000)));
+        var nextStars = [];
+        var index;
+
+        for (index = 0; index < count; index += 1) {
+            nextStars.push(createStar());
+        }
+
+        stars = nextStars;
     }
 
     function resizeCanvas() {
-        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        var ratio = Math.min(window.devicePixelRatio || 1, 2);
+
         width = window.innerWidth;
         height = window.innerHeight;
 
         canvas.width = Math.floor(width * ratio);
         canvas.height = Math.floor(height * ratio);
-        canvas.style.width = `${width}px`;
-        canvas.style.height = `${height}px`;
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
         context.setTransform(ratio, 0, 0, ratio, 0, 0);
 
         rebuildStars();
     }
 
     function drawFrame() {
+        var index;
+
         context.clearRect(0, 0, width, height);
 
-        stars.forEach((star) => {
+        for (index = 0; index < stars.length; index += 1) {
+            var star = stars[index];
+            var opacity;
+
             if (!prefersReducedMotion) {
                 star.y += star.speed;
                 star.twinkle += 0.015;
@@ -82,15 +106,15 @@ function initSpaceCanvas() {
                 star.x = Math.random() * width;
             }
 
-            const opacity = star.alpha * (0.72 + Math.sin(star.twinkle) * 0.28);
+            opacity = star.alpha * (0.72 + Math.sin(star.twinkle) * 0.28);
 
             context.beginPath();
-            context.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+            context.fillStyle = "rgba(255, 255, 255, " + opacity + ")";
             context.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
             context.fill();
-        });
+        }
 
-        if (!prefersReducedMotion) {
+        if (!prefersReducedMotion && window.requestAnimationFrame) {
             animationId = window.requestAnimationFrame(drawFrame);
         }
     }
@@ -98,8 +122,8 @@ function initSpaceCanvas() {
     resizeCanvas();
     drawFrame();
 
-    window.addEventListener("resize", () => {
-        if (animationId) {
+    window.addEventListener("resize", function () {
+        if (animationId && window.cancelAnimationFrame) {
             window.cancelAnimationFrame(animationId);
         }
 
@@ -108,7 +132,7 @@ function initSpaceCanvas() {
     });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", function () {
     initRevealObserver();
     initSpaceCanvas();
 });
